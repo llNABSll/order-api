@@ -25,3 +25,4 @@ Thumbs.db
 *.pid
 *.pid
 .ipynb_checkpoints/
+reports/
