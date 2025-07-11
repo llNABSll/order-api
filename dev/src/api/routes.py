@@ -1,21 +1,16 @@
-# from fastapi import APIRouter, Depends, HTTPException
-# from typing import List
+from fastapi import APIRouter, Depends
+from typing import List
 
-# from app.schemas.order import OrderCreate, OrderOut
-# from app.services.order_service import OrderService
-# from app.dependencies.order import get_order_service
+from dev.src.schemas.create import OrderCreate, OrderOut
 
-# router = APIRouter(
-#     prefix="/orders",
-#     tags=["orders"]
-# )
+router = APIRouter()
 
-# @router.post("/", response_model=OrderOut, status_code=201)
-# def create_order(
-#     order: OrderCreate,
-#     service: OrderService = Depends(get_order_service)
-# ):
-#     return service.create_order(order)
+@router.post("/", validators=List[OrderCreate], response_model=OrderOut, status_code=201)
+def create_order(
+    order: OrderCreate,
+    service: OrderService = Depends(session)
+):
+    return service.create_order(order)
 
 # @router.get("/", response_model=List[OrderOut])
 # def list_orders(
