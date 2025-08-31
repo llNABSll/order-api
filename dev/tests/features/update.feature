@@ -1,27 +1,14 @@
-Feature: Update Orders
+Feature: Update orders
+  As a user
+  I want to update an order
+  So that I can change its content or status
 
-  As a reseller or webshop user
-  I want to update coffee orders via the API
-  So that I can adjust order quantities as needed
+  Scenario: Update the status of an order
+    Given an order exists with id "20" and status "pending"
+    When I update the status of order "20" to "paid"
+    Then the order should have status "paid"
 
-  Background:
-    Given the Orders API is available
-
-  Scenario: Update the quantity of an existing order
-    Given an order was created with product "moka coffee" and quantity 3
-    When I update the quantity to 6
-    Then the order should reflect the new quantity
-
-  Scenario: Update a non-existing order
-    When I update an order with ID "999999"
-    Then a 404 error should be returned
-
-  Scenario: Update an order with invalid quantity
-    Given an order was created with product "moka coffee" and quantity 3
-    When I update the quantity to -10
-    Then an error should be returned indicating the quantity is invalid
-
-  Scenario: Receive product update via message broker
-    Given a product is updated in the Product service
-    When a message is published on the message broker
-    Then the Orders API should update the related product data locally
+  Scenario: Add a product to an order
+    Given an order exists with id "26" for customer "1"
+    When I add 1 product with id "55" 
+    Then the order should contain product "55"

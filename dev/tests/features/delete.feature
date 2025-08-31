@@ -1,18 +1,14 @@
-Feature: Delete Orders
-
-  As a reseller or webshop user
-  I want to delete coffee orders via the API
-  So that I can manage canceled or erroneous orders
-
-  Background:
-    Given the Orders API is available
+Feature: Delete orders
+  As a user
+  I want to delete an order
+  So that I can cancel an existing order
 
   Scenario: Delete an existing order
-    Given an order was created with product "colombian coffee" and quantity 8
-    When I delete this order
-    Then the order should no longer be retrievable
+    Given an order exists with id "26" for customer "1"
+    When I delete the order "26"
+    Then the order should no longer exist
+    And the API should return status code 204
 
-  Scenario: Delete an already deleted order
-    Given an order was previously deleted
-    When I try to delete the same order again
-    Then a 404 error should be returned
+  Scenario: Delete a non-existing order
+    When I delete the order "9999"
+    Then the API should return status code 404
