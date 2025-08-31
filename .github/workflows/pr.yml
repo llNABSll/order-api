@@ -1,6 +1,7 @@
 name: PR - Tests & SonarQube
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: ["*"]
 
@@ -23,8 +24,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest || true
-          behave dev/tests/features --junit --junit-directory reports || true
+          behave dev/tests/features --junit --junit-directory reports
 
   sonarqube:
     runs-on: ubuntu-24.04
@@ -32,11 +32,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
-        with:
-          projectBaseDir: .
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: https://sonarcloud.io

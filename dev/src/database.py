@@ -8,10 +8,14 @@ from sqlalchemy.pool import NullPool
 Base = declarative_base()
 
 import os
-# Utilise SQLite en mémoire si TESTING=1, sinon PostgreSQL
 
-# Utilise DATABASE_URL de l'environnement si défini (Docker), sinon fallback local
-if os.environ.get("TESTING") == "1":
+# Utilise SQLite en mémoire pour les tests (Behave/Pytest/CI), sinon PostgreSQL
+if (
+    os.environ.get("TESTING") == "1"
+    or os.environ.get("GITHUB_ACTIONS") == "true"
+    or os.environ.get("PYTEST_CURRENT_TEST") is not None
+    or os.environ.get("BEHAVE_TEST") == "1"
+):
     DATABASE_URL = "sqlite:///./test.db"
     connect_args = {"check_same_thread": False}
 else:

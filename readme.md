@@ -4,6 +4,14 @@
 
 ---
 
+## Installer les dépendances Python
+
+```sh
+pip install -r requirements.txt
+```
+
+---
+
 ## Lancer les conteneurs (Docker Compose)
 
 ```sh

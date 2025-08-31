@@ -1,6 +1,6 @@
+from __future__ import annotations
 from typing     import Awaitable, Callable, Optional
 from anyio      import from_thread
-from __future__ import annotations
 import aio_pika
 import logging
 import asyncio
