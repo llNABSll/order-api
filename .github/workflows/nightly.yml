@@ -22,7 +22,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
+        uses: sonarsource/sonarqube-scan-action@v5
         with:
           projectBaseDir: .
         env:
