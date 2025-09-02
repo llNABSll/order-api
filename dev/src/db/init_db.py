@@ -14,7 +14,6 @@ def init_db():
 
     # Vérifie si des commandes existent déjà
     if db.query(Order).first():
-        print("✅ Database already seeded")
         db.close()
         return
 
@@ -43,4 +42,3 @@ def init_db():
     db.add_all([order1, order2])
     db.commit()
     db.close()
-    print("🌱 Database seeded with initial data")
