@@ -1,34 +1,35 @@
 from dev.src.schemas.order_schemas import OrderCreate, OrderOut
 from dev.src.models.order_model    import Order, OrderProduct
-from dev.src.rabbitmq.config              import rabbitmq
+from dev.src.rabbitmq.config       import rabbitmq
 from sqlalchemy.orm                import Session
 from fastapi                       import HTTPException
 import aio_pika
-import asyncio
+import logging
 import json
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("order-api")
 
 async def publish_event(event_type: str, payload: dict):
-    """
-    Publie un message JSON dans l'exchange "orders"
-    """
-    if not rabbitmq.channel:
-        await rabbitmq.connect()
+    try:
+        if not rabbitmq.channel:
+            await rabbitmq.connect()
+        if not rabbitmq.channel:
+            # Connexion impossible, on log et on skip
+            logging.getLogger("order-api").warning("RabbitMQ non disponible, événement ignoré")
+            return
+        exchange = await rabbitmq.channel.declare_exchange("orders", aio_pika.ExchangeType.TOPIC)
+        message = aio_pika.Message(body=json.dumps(payload).encode())
+        await exchange.publish(message, routing_key=f"order.{event_type}")
+    except Exception as e:
+        logging.getLogger("order-api").warning(f"RabbitMQ publish failed: {e}")
 
-    exchange = await rabbitmq.channel.declare_exchange("orders", aio_pika.ExchangeType.TOPIC)
-    message = aio_pika.Message(body=json.dumps(payload).encode())
-    await exchange.publish(message, routing_key=f"order.{event_type}")
 
 
+# Version compatible FastAPI/TestClient (thread safe)
+from anyio import from_thread
 def publish_event_sync(event_type: str, payload: dict):
-    """
-    Wrapper sync -> async
-    """
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-        asyncio.ensure_future(publish_event(event_type, payload))
-    else:
-        loop.run_until_complete(publish_event(event_type, payload))
+    from_thread.run(publish_event, event_type, payload)
 
 
 class OrderService:
