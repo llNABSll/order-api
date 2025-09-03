@@ -36,9 +36,9 @@ jobs:
           report_paths: '**/reports/TESTS-*.xml'
 
       - name: publish coverage report
-        uses: 5monkeys/cobertura-action@v14
+        uses: irongut/CodeCoverageSummary@v1.3.0
         with:
-          minimum_coverage: 75
+          filename: coverage.xml
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
