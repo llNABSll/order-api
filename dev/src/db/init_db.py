@@ -4,7 +4,6 @@ from datetime                   import datetime, timezone
 from sqlalchemy.orm             import Session
 from dev.src.db.config          import Base
 
-
 def init_db():
     # Crée toutes les tables si elles n'existent pas
     Base.metadata.create_all(bind=engine)
