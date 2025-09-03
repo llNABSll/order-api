@@ -30,15 +30,18 @@ jobs:
           coverage xml -o coverage.xml
 
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@v5
-        if: success() || failure()
+        # uses: mikepenz/action-junit-report@v5
+        # if: success() || failure()
+        # with:
+        #   report_paths: '**/reports/TESTS-*.xml'
+        uses: EnricoMi/publish-unit-test-result-action@v2.20.0
         with:
-          report_paths: '**/reports/TESTS-*.xml'
+          files: '**/TESTS-*.xml'
+
 
       - name: publish coverage report
         uses: 5monkeys/cobertura-action@v14
         with:
-          path: ${{ github.workspace }}/coverage.xml
           minimum_coverage: 75
 
       - name: SonarQube Scan
