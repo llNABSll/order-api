@@ -1,21 +1,11 @@
 
 from fastapi.testclient import TestClient
 from dev.src.main import app
-from dev.src.database import Base, engine
+from dev.src.db.config import Base, engine
 
 client = TestClient(app)
 
-def before_all(context):
-    """
-    Crée les tables SQLite en mémoire avant tous les tests si on utilise SQLite.
-    """
-    url = str(engine.url)
-
-def before_scenario(context, scenario):
-    """
-    Reset database state before each scenario.
-    Utilise TestClient pour supprimer les commandes sans serveur externe.
-    """
+def before_scenario():
     Base.metadata.create_all(bind=engine)
     # Option 1 : dedicated testing endpoint (recommended)
     response = client.delete("/test/reset")

@@ -3,7 +3,7 @@ import aio_pika
 import logging
 import json
 
-from dev.src.database import SessionLocal
+from dev.src.db.config import SessionLocal
 from dev.src.models.order_model import Order, OrderProduct
 
 logger = logging.getLogger("order-api.rabbitmq.consumer")

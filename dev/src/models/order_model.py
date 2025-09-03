@@ -1,8 +1,8 @@
-from sqlalchemy       import Integer, String, DateTime, ForeignKey, func
-from sqlalchemy.orm   import Mapped, mapped_column, relationship
-from datetime         import datetime
-from typing           import List
-from dev.src.database import Base
+from sqlalchemy        import Integer, String, DateTime, ForeignKey, func
+from sqlalchemy.orm    import Mapped, mapped_column, relationship
+from datetime          import datetime
+from typing            import List
+from dev.src.db.config import Base
 
 
 # ---------- ORDERS ----------

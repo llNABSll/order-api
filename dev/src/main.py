@@ -11,11 +11,13 @@ import asyncio
 async def lifespan(app: FastAPI):
     init_db()
     await rabbitmq.connect()
-    asyncio.create_task(start_consumer())
+    app.state.consumer_task = asyncio.create_task(start_consumer())
     try:
         yield
     finally:
         await rabbitmq.disconnect()
+        # Optionally, cancel the consumer task on shutdown
+        app.state.consumer_task.cancel()
 
 
 app = FastAPI(lifespan=lifespan)
