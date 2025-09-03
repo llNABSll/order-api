@@ -5,7 +5,7 @@ from dev.src.db.config import Base, engine
 
 client = TestClient(app)
 
-def before_scenario():
+def before_scenario(context, scenario):
     Base.metadata.create_all(bind=engine)
     # Option 1 : dedicated testing endpoint (recommended)
     response = client.delete("/test/reset")
