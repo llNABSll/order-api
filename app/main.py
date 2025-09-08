@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
                 rabbitmq.exchange,
                 rabbitmq.exchange_type,
                 queue_name="q-order",
-                patterns=["product.#"],
+                patterns=["product.#", "customer.#"], 
                 handler=on_event,
             )
         )
