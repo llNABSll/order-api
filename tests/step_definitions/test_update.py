@@ -2,6 +2,7 @@ from app.security.security import AuthContext, require_read, require_write
 from pytest_bdd            import given, when, then, parsers, scenarios
 from fastapi.testclient    import TestClient
 from app.main              import app
+from common_steps          import *
 import pytest
 
 scenarios("../features/update.feature")
@@ -41,9 +42,9 @@ def step_given_existing_order_with_status(client, scenario_data, order_id, custo
 
 @when(parsers.parse('I update the status of order "{order_id}" to "{new_status}"'))
 def step_when_update_status(client, scenario_data, order_id, new_status):
-    real_order_id = scenario_data.get("order_id", order_id)
+    # real_order_id = scenario_data.get("order_id", order_id)
     payload = {"status": new_status}
-    scenario_data["response"] = client.put(f"/orders/{real_order_id}/status", json=payload)
+    scenario_data["response"] = client.put(f"/orders/{order_id}/status", json=payload)
 
 @then(parsers.parse('the order should have status "{status}"'))
 def step_then_order_updated_status(scenario_data, status):

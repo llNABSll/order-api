@@ -12,3 +12,9 @@ Feature: Delete orders
   Scenario: Delete a non-existing order
     When I delete the order "9999"
     Then the API should return status code 404
+
+  Scenario: Delete an order twice
+    Given an order exists with id "26" for customer "1"
+    When I delete the order "26"
+    And I delete the order "26"
+    Then the API should return status code 404

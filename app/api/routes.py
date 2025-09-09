@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.schemas.schemas import OrderCreate, OrderResponse, OrderUpdate
-from app.services.services import OrderService, NotFoundError
 from app.security.security import require_read, require_write
-from app.infra.events.rabbitmq import rabbitmq  # implémente MessagePublisher
+from app.infra.events.rabbitmq import rabbitmq
+from app.services.services import NotFoundError, OrderService  # implémente MessagePublisher
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -90,7 +90,10 @@ async def update_order_status(
             detail="Invalid status value.",
         )
 
-    return await svc.update_order_status(order_id, status_update.status)
+    try:
+        return await svc.update_order_status(order_id, status_update.status)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.delete(

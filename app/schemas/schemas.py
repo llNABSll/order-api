@@ -29,7 +29,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[Literal["pending", "paid", "shipped", "cancelled"]] = None
+    status: Optional[str] = None
 
 
 class OrderResponse(BaseModel):

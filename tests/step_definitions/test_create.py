@@ -2,6 +2,7 @@ from app.security.security import AuthContext, require_read, require_write
 from pytest_bdd            import given, when, then, parsers, scenarios
 from fastapi.testclient    import TestClient
 from app.main              import app
+from common_steps          import *
 import pytest
 
 scenarios("../features/create.feature")
@@ -60,3 +61,12 @@ def step_then_order_status_created(scenario_data, status):
 def step_then_order_creation_fail(scenario_data, status_code):
     response = scenario_data["response"]
     assert response.status_code == status_code
+
+
+@when('I try to create an order with missing customer_id')
+def step_create_order_missing_customer_id(client, scenario_data):
+    payload = {
+        # "customer_id" is missing
+        "items": [{"product_id": 42, "quantity": 1}]
+    }
+    scenario_data["response"] = client.post("/orders/", json=payload)

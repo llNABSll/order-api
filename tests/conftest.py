@@ -13,15 +13,3 @@ def setup_db():
 	Base.metadata.create_all(bind=engine)
 	yield
 	Base.metadata.drop_all(bind=engine)
-
-@pytest.fixture
-def client():
-	def override_get_db():
-		db = SessionLocal()
-		try:
-			yield db
-		finally:
-			db.close()
-	app.dependency_overrides[get_db] = override_get_db
-	yield TestClient(app)
-	app.dependency_overrides.clear()
