@@ -19,8 +19,8 @@ class OrderItemResponse(OrderItemBase):
     id: int
     order_id: int
 
-    class Config:
-        orm_mode = True
+    class ConfigDict:
+        model_config = {"from_attributes": True}
 
 
 class OrderCreate(BaseModel):
@@ -41,5 +41,5 @@ class OrderResponse(BaseModel):
     version: int
     items: List[OrderItemResponse] = []
 
-    class Config:
-        orm_mode = True
+    class ConfigDict:
+        model_config = {"from_attributes": True}

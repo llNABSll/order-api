@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.order import Order
-from app.schemas.order_schema import OrderCreate, OrderUpdate
+from app.models.models import Order
+from app.schemas.schemas import OrderCreate, OrderUpdate
 
 
 class OrderRepository:
@@ -48,7 +48,7 @@ class OrderRepository:
 
     def update(self, order: Order, order_in: OrderUpdate) -> Order:
         """Update an order."""
-        update_data = order_in.dict(exclude_unset=True)
+        update_data = order_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(order, field, value)
         

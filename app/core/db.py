@@ -3,18 +3,28 @@ from __future__ import annotations
 import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-
+import os
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# --- Engine SQLAlchemy ---
-engine = create_engine(
-    str(settings.DATABASE_URL),
-    future=True,
-    pool_pre_ping=True,
-    echo=getattr(settings, "DB_ECHO", False),
-)
+if os.environ.get("TESTING") == "1":
+    # Utilisation d'une base SQLite en mémoire pour les tests
+    TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        TEST_SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        future=True,
+        pool_pre_ping=True,
+        echo=False,
+    )
+else:
+    engine = create_engine(
+        str(settings.DATABASE_URL),
+        future=True,
+        pool_pre_ping=True,
+        echo=getattr(settings, "DB_ECHO", False),
+    )
 
 # --- Session factory ---
 SessionLocal = sessionmaker(

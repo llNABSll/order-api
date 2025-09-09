@@ -4,9 +4,12 @@ import logging
 from datetime import datetime
 from typing import List
 
-from app.models.order import Order, OrderItem
-from app.repositories.order_repository import OrderRepository
-from app.schemas.order_schema import OrderCreate, OrderUpdate
+from fastapi import HTTPException
+from datetime import timezone
+
+from app.models.models import Order, OrderItem
+from app.repositories.repositories import OrderRepository
+from app.schemas.schemas import OrderCreate, OrderUpdate
 from app.infra.events.contracts import MessagePublisher
 
 logger = logging.getLogger(__name__)
@@ -36,7 +39,12 @@ class OrderService:
         return self.repository.list(skip=skip, limit=limit)
 
     # ---------- Écriture ----------
+    from fastapi import HTTPException
+    
     async def create_order(self, order_in: OrderCreate) -> Order:
+        if not order_in.items or len(order_in.items) == 0:
+            raise HTTPException(status_code=400, detail="Order must contain at least one item.")
+    
         order = Order(customer_id=order_in.customer_id, status="pending")
 
         for item_in in order_in.items:
@@ -80,7 +88,7 @@ class OrderService:
 
         await self.publisher.publish_message("order.deleted", {
             "id": order_id,
-            "deleted_at": datetime.utcnow().isoformat(),
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
         })
         logger.info("order supprimé", extra={"id": order_id})
         return deleted_order

@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.schemas.order_schema import OrderCreate, OrderResponse, OrderUpdate
-from app.services.order_service import OrderService, NotFoundError
+from app.core.db import get_db
+from app.schemas.schemas import OrderCreate, OrderResponse, OrderUpdate
+from app.services.services import OrderService, NotFoundError
 from app.security.security import require_read, require_write
 from app.infra.events.rabbitmq import rabbitmq  # implémente MessagePublisher
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------- Dependency injection ----------
 def get_order_service(db: Session = Depends(get_db)) -> OrderService:
     """Construit un OrderService avec repo + publisher (RabbitMQ)."""
-    from app.repositories.order_repository import OrderRepository
+    from app.repositories.repositories import OrderRepository
 
     repo = OrderRepository(db)
     return OrderService(repo, rabbitmq)
@@ -95,13 +95,14 @@ async def update_order_status(
 
 @router.delete(
     "/{order_id}",
-    response_model=OrderResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_write)],
 )
 async def delete_order(order_id: int, svc: OrderService = Depends(get_order_service)):
     """Supprimer une commande. Nécessite WRITE."""
     try:
         logger.info("Deleting order %s", order_id)
-        return await svc.delete_order(order_id)
+        await svc.delete_order(order_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

@@ -12,11 +12,11 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.core.database import engine
-from app.core.logging import setup_logging, access_log_middleware
+from app.core.db import engine
+from app.core.log import setup_logging, access_log_middleware
 from app.infra.events.rabbitmq import rabbitmq, start_consumer
-from app.api.routes import order as order_router
-from app.core.database import init_db
+from app.api import routes as order_router
+from app.core.db import init_db
 
 # --- Logging ---
 setup_logging()
