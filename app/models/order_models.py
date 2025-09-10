@@ -2,19 +2,30 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List
+from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func, Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 
+
+class OrderStatus(str, Enum):
+    pending = "pending"
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
 
 class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     customer_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    status: Mapped[OrderStatus] = mapped_column(
+        SqlEnum(OrderStatus, name="order_status"),
+        default=OrderStatus.pending,
+        nullable=False,
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     created_at: Mapped[datetime] = mapped_column(

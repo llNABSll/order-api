@@ -7,10 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.schemas.schemas import OrderCreate, OrderResponse, OrderUpdate
+from app.schemas.order_schemas import OrderCreate, OrderResponse, OrderUpdate
 from app.security.security import require_read, require_write
 from app.infra.events.rabbitmq import rabbitmq
-from app.services.services import NotFoundError, OrderService  # implémente MessagePublisher
+from app.services.order_services import NotFoundError, OrderService  # implémente MessagePublisher
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------- Dependency injection ----------
 def get_order_service(db: Session = Depends(get_db)) -> OrderService:
     """Construit un OrderService avec repo + publisher (RabbitMQ)."""
-    from app.repositories.repositories import OrderRepository
+    from app.repositories.order_repositories import OrderRepository
 
     repo = OrderRepository(db)
     return OrderService(repo, rabbitmq)

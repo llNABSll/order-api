@@ -7,9 +7,9 @@ from typing import List
 from fastapi import HTTPException
 from datetime import timezone
 
-from app.models.models import Order, OrderItem
-from app.repositories.repositories import OrderRepository
-from app.schemas.schemas import OrderCreate, OrderUpdate
+from app.models.order_models import Order, OrderItem
+from app.repositories.order_repositories import OrderRepository
+from app.schemas.order_schemas import OrderCreate, OrderUpdate
 from app.infra.events.contracts import MessagePublisher
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,32 @@ class OrderService:
         })
         logger.info("order mis à jour", extra={"id": updated_order.id, "status": updated_order.status})
         return updated_order
+    
+    async def update_order_items(self, order_id: int, items: list[dict]) -> Order:
+        order = self.get_order(order_id)
+
+        # On réécrit la liste des items
+        order.items.clear()
+        for item in items:
+            order.items.append(OrderItem(
+                product_id=item["product_id"],
+                quantity=item["quantity"],
+                order=order
+            ))
+
+        self.repository.db.add(order)
+        self.repository.db.commit()
+        self.repository.db.refresh(order)
+
+        await self.publisher.publish_message("order.updated", {
+            "id": order.id,
+            "status": order.status,
+            "items": [{"product_id": i.product_id, "quantity": i.quantity} for i in order.items],
+            "updated_at": order.updated_at.isoformat(),
+        })
+        logger.info(f"order {order.id} mis à jour (items modifiés)")
+        return order
+
 
     async def delete_order(self, order_id: int) -> Order:
         order = self.get_order(order_id)

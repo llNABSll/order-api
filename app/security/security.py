@@ -34,7 +34,8 @@ class _Verifier:
             key,
             algorithms=["RS256"],
             issuer=self._iss,
-            options={"verify_aud": False},
+            audience="order-api",
+            options={"verify_aud": True},
             leeway=10,
         )
 
@@ -117,8 +118,9 @@ def require_user(
     if isinstance(creds, HTTPAuthorizationCredentials) and creds.scheme.lower() == "bearer" and creds.credentials:
         try:
             payload = _get_verifier().decode(creds.credentials)
-        except Exception:
+        except Exception as e:
             logger.warning("JWT invalide (signature/iss/exp)")
+            logger.error(e, exc_info=True)
             raise HTTPException(status_code=401, detail="JWT invalide")
 
         user = payload.get("preferred_username") or payload.get("email") or payload.get("sub") or "unknown"
