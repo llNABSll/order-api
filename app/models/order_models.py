@@ -15,6 +15,8 @@ class OrderStatus(str, Enum):
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
+    SHIPPED = "shipped"
+    PAID = "paid"
 
 class Order(Base):
     __tablename__ = "orders"

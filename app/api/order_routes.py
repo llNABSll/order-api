@@ -84,7 +84,7 @@ async def update_order_status(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Status field is required.",
         )
-    if status_update.status not in ["pending", "paid", "shipped", "cancelled"]:
+    if status_update.status not in ["pending", "paid", "shipped", "cancelled", "completed", "confirmed"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid status value.",
