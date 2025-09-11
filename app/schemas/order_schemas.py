@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Optional, Literal
+from app.models.order_models import OrderStatus
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +30,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[str] = None
+    status: OrderStatus | None = None
 
 
 class OrderResponse(BaseModel):

@@ -42,7 +42,6 @@ def step_given_existing_order_with_status(client, scenario_data, order_id, custo
 
 @when(parsers.parse('I update the status of order "{order_id}" to "{new_status}"'))
 def step_when_update_status(client, scenario_data, order_id, new_status):
-    # real_order_id = scenario_data.get("order_id", order_id)
     payload = {"status": new_status}
     scenario_data["response"] = client.put(f"/orders/{order_id}/status", json=payload)
 

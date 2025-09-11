@@ -12,10 +12,11 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.core.db import engine
+from app.core.db import engine, SessionLocal
 from app.core.log import setup_logging, access_log_middleware
 from app.infra.events.rabbitmq import rabbitmq, start_consumer
-from app.api import routes as order_router
+from app.infra.events.handlers import (handle_customer_deleted,handle_customer_update_order,handle_customer_delete_order)
+from app.api import order_routes as order_router
 from app.core.db import init_db
 
 # --- Logging ---
@@ -49,19 +50,33 @@ async def lifespan(app: FastAPI):
         await rabbitmq.connect()
         logger.info("[order-api] RabbitMQ connecté, exchange=%s", rabbitmq.exchange_name)
 
-        async def on_event(payload: dict, rk: str):
-            logger.info("[order-api] Reçu %s: %s", rk, payload)
+        async def consumer_handler(payload: dict, rk: str):
+            logger.info("[order-api] received %s: %s", rk, payload)
+            db = SessionLocal()
+            try:
+                if rk == "customer.deleted":
+                    await handle_customer_deleted(payload, db, rabbitmq)
+                elif rk == "customer.update_order":
+                    await handle_customer_update_order(payload, db, rabbitmq)
+                elif rk == "customer.delete_order":
+                    await handle_customer_delete_order(payload, db, rabbitmq)
+                else:
+                    logger.warning(f"[order-api] event ignoré: {rk}")
+            finally:
+                db.close()
 
+        # Démarre un consumer RabbitMQ
         asyncio.create_task(
             start_consumer(
                 rabbitmq.connection,
                 rabbitmq.exchange,
                 rabbitmq.exchange_type,
-                queue_name="q-order",
-                patterns=["product.#", "customer.#"], 
-                handler=on_event,
+                queue_name="order-events",
+                patterns=["customer.#"],
+                handler=consumer_handler,
             )
         )
+
         logger.info("[order-api] Consumer lancé (q-order, patterns=product.#)")
     except Exception as e:
         logger.exception("[order-api] Échec initialisation RabbitMQ: %s", e)
