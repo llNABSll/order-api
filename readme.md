@@ -37,7 +37,8 @@ uvicorn dev.src.main:app --reload --port 8000
 ```sh
 # Exécute tous les tests Behave et génère les rapports JUnit
 
-behave dev/tests/features --junit --junit-directory reports
+pytest
+
 ```
 
 ---
