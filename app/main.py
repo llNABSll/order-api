@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
                 db.close()
 
         # Démarre un consumer RabbitMQ
-        asyncio.create_task(
+        app.state.consumer_task = asyncio.create_task(
             start_consumer(
                 rabbitmq.connection,
                 rabbitmq.exchange,
