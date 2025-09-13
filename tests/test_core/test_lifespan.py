@@ -1,7 +1,6 @@
-import pytest
 import logging
 from fastapi import FastAPI
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from app.main import lifespan
 
 def test_lifespan_database_ok(monkeypatch):

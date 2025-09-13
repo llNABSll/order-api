@@ -66,16 +66,20 @@ async def lifespan(app: FastAPI):
                 db.close()
 
         # Démarre un consumer RabbitMQ
-        app.state.consumer_task = asyncio.create_task(
-            start_consumer(
-                rabbitmq.connection,
-                rabbitmq.exchange,
-                rabbitmq.exchange_type,
-                queue_name="order-events",
-                patterns=["customer.#"],
-                handler=consumer_handler,
+        # Only start consumer if connection and exchange are available
+        if rabbitmq.connection is not None and rabbitmq.exchange is not None:
+            app.state.consumer_task = asyncio.create_task(
+                start_consumer(
+                    rabbitmq.connection,
+                    rabbitmq.exchange,
+                    rabbitmq.exchange_type,
+                    queue_name="order-events",
+                    patterns=["customer.#"],
+                    handler=consumer_handler,
+                )
             )
-        )
+        else:
+            logger.warning("RabbitMQ connection/exchange not available, consumer not started")
 
         logger.info("[order-api] Consumer lancé (q-order, patterns=product.#)")
     except Exception as e:

@@ -43,7 +43,6 @@ def init_db() -> None:
     Enregistre tous les modèles et crée les tables manquantes.
     IMPORTANT: il faut importer les modèles avant d’appeler create_all().
     """
-    from app import models   # ✅ import retardé
     Base.metadata.create_all(bind=engine)
     logger.info("[order-api] DB init: tables ensured")
 

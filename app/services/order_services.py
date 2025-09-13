@@ -7,7 +7,7 @@ from typing import List
 from fastapi import HTTPException
 from datetime import timezone
 
-from app.models.order_models import Order, OrderItem
+from app.models.order_models import Order, OrderItem, OrderStatus
 from app.repositories.order_repositories import OrderRepository
 from app.schemas.order_schemas import OrderCreate, OrderUpdate
 from app.infra.events.contracts import MessagePublisher
@@ -39,13 +39,12 @@ class OrderService:
         return self.repository.list(skip=skip, limit=limit)
 
     # ---------- Écriture ----------
-    from fastapi import HTTPException
-    
     async def create_order(self, order_in: OrderCreate) -> Order:
         if not order_in.items or len(order_in.items) == 0:
             raise HTTPException(status_code=400, detail="Order must contain at least one item.")
-    
-        order = Order(customer_id=order_in.customer_id, status="pending")
+
+        # Ensure we use the OrderStatus enum for status
+        order = Order(customer_id=order_in.customer_id, status=OrderStatus.pending)
 
         for item_in in order_in.items:
             order.items.append(
@@ -72,7 +71,12 @@ class OrderService:
 
     async def update_order_status(self, order_id: int, new_status: str) -> Order:
         order = self.get_order(order_id)
-        updated_order = self.repository.update(order, OrderUpdate(status=new_status))
+        # Convert incoming status (likely a str) to OrderStatus for Pydantic/SQLA models
+        try:
+            status_enum = OrderStatus(new_status)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+        updated_order = self.repository.update(order, OrderUpdate(status=status_enum))
 
         await self.publisher.publish_message("order.updated", {
             "id": updated_order.id,
@@ -111,6 +115,9 @@ class OrderService:
     async def delete_order(self, order_id: int) -> Order:
         order = self.get_order(order_id)
         deleted_order = self.repository.delete(order.id)
+        if deleted_order is None:
+            # Shouldn't happen because get_order above would have raised, but be explicit
+            raise NotFoundError(f"Order with id {order_id} not found for deletion")
 
         await self.publisher.publish_message("order.deleted", {
             "id": order_id,

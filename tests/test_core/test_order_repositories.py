@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock
 from app.repositories.order_repositories import OrderRepository
 
 class FakeQuery:
