@@ -1,7 +1,6 @@
 from app.schemas.order_schemas import OrderCreate, OrderUpdate
 from app.models.order_models   import Order
 from sqlalchemy.orm      import Session
-# from __future__          import annotations
 from typing              import Any, Dict, List, Optional
 
 class OrderRepository:

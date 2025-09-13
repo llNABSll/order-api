@@ -47,7 +47,12 @@ def _get_verifier() -> _Verifier:
     """Init paresseuse pour éviter un crash si settings ne sont pas prêts au chargement du module."""
     global _verifier
     if _verifier is None:
-        _verifier = _Verifier(settings.KEYCLOAK_JWKS_URL, settings.KEYCLOAK_ISSUER)
+        jwks = settings.KEYCLOAK_JWKS_URL
+        issuer = settings.KEYCLOAK_ISSUER
+        # Narrow Optional[str] -> str for mypy by guarding here
+        if not jwks or not issuer:
+            raise RuntimeError("KEYCLOAK_JWKS_URL / KEYCLOAK_ISSUER non configurés")
+        _verifier = _Verifier(jwks, issuer)
     return _verifier
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Iterable, Awaitable, Callable
 
 import aio_pika
@@ -116,7 +115,7 @@ async def start_consumer(
     async with queue.iterator() as it:
         async for message in it:
             async with message.process():
-                rk = message.routing_key
+                rk = message.routing_key or ""
                 try:
                     payload = json.loads(message.body.decode("utf-8"))
                 except Exception:

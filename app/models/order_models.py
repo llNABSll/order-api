@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func, Enum as SqlEnum
+from sqlalchemy import DateTime, ForeignKey, Integer, func, Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
