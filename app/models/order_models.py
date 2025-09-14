@@ -11,10 +11,11 @@ from app.core.db import Base
 
 
 class OrderStatus(str, Enum):
-    pending = "pending"
+    PENDING = "pending"
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
+    REJECTED = "rejected"
 
 class Order(Base):
     __tablename__ = "orders"
@@ -22,8 +23,8 @@ class Order(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     customer_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     status: Mapped[OrderStatus] = mapped_column(
-        SqlEnum(OrderStatus, name="order_status"),
-        default=OrderStatus.pending,
+        SqlEnum(OrderStatus, name="order_status", native_enum=False),
+        default=OrderStatus.PENDING,
         nullable=False,
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

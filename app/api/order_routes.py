@@ -11,6 +11,7 @@ from app.schemas.order_schemas import OrderCreate, OrderResponse, OrderUpdate
 from app.security.security import require_read, require_write
 from app.infra.events.rabbitmq import rabbitmq
 from app.services.order_services import NotFoundError, OrderService  # implémente MessagePublisher
+from app.models.order_models import OrderStatus
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -80,21 +81,14 @@ async def update_order_status(
 ):
     """Mettre à jour le statut d’une commande. Nécessite WRITE."""
     if not status_update.status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Status field is required.",
-        )
-    if status_update.status not in ["pending", "paid", "shipped", "cancelled"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status value.",
-        )
+        raise HTTPException(status_code=400, detail="Status field is required.")
 
     try:
-        return await svc.update_order_status(order_id, status_update.status)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        new_status = OrderStatus(status_update.status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid status value.")
 
+    return await svc.update_order_status(order_id, new_status)
 
 @router.delete(
     "/{order_id}",

@@ -26,11 +26,12 @@ class OrderItemResponse(OrderItemBase):
 
 class OrderCreate(BaseModel):
     customer_id: int = Field(..., description="ID of the customer")
+    status: OrderStatus = OrderStatus.PENDING
     items: List[OrderItemCreate]
 
 
 class OrderUpdate(BaseModel):
-    status: OrderStatus | None = None
+    status: OrderStatus
 
 
 class OrderResponse(BaseModel):

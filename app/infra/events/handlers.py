@@ -3,6 +3,7 @@
 import logging
 from sqlalchemy.orm import Session
 from app.services.order_services import OrderService, NotFoundError
+from app.models.order_models import OrderStatus
 from app.repositories.order_repositories import OrderRepository
 
 logger = logging.getLogger(__name__)
@@ -85,3 +86,29 @@ async def handle_customer_delete_order(payload: dict, db: Session, publisher):
         logger.info(f"[customer.delete_order] commande {order_id} supprimée")
     except NotFoundError:
         logger.warning(f"[customer.delete_order] commande {order_id} introuvable")
+
+async def handle_order_rejected(payload: dict, db: Session, publisher):
+    """
+    Quand le product-api rejette une commande (stock insuffisant).
+    payload attendu :
+    {
+        "id": 123,
+        "reason": "Produit 42 insuffisant"
+    }
+    """
+    order_id = payload.get("id")
+    reason = payload.get("reason", "Unknown")
+
+    if not order_id:
+        logger.warning("[order.rejected] payload sans id → ignoré")
+        return
+
+    repo = OrderRepository(db)
+    order = repo.get(order_id)
+    if order:
+        order.status = OrderStatus.REJECTED
+        db.commit()
+        db.refresh(order)
+        logger.warning(f"[order.rejected] Commande {order_id} rejetée : {reason}")
+    else:
+        logger.warning(f"[order.rejected] commande {order_id} introuvable")
