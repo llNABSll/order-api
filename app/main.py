@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(
             start_consumer(
                 rabbitmq.connection,
-                rabbitmq.exchange,
+                rabbitmq.exchange_name,
                 rabbitmq.exchange_type,
                 queue_name="order-events",
                 patterns=["customer.#", "order.#"],
