@@ -1,7 +1,6 @@
-# app/infra/events/handlers.py (order-api)
-
 import logging
 from sqlalchemy.orm import Session
+
 from app.services.order_services import OrderService, NotFoundError
 from app.models.order_models import OrderStatus
 from app.repositories.order_repositories import OrderRepository
@@ -12,7 +11,9 @@ logger = logging.getLogger(__name__)
 # ----- CUSTOMER DELETED -----
 async def handle_customer_deleted(payload: dict, db: Session, publisher):
     """
-    Supprime toutes les commandes d’un client supprimé.
+    Quand un client est supprimé :
+    - toutes ses commandes passent en statut CANCELLED
+    - cela publiera automatiquement des order.cancelled (via OrderService)
     """
     customer_id = payload.get("id")
     if not customer_id:
@@ -27,13 +28,13 @@ async def handle_customer_deleted(payload: dict, db: Session, publisher):
 
     for order in orders:
         try:
-            await service.delete_order(order.id)  # publiera automatiquement order.deleted
-            logger.info(f"[customer.deleted] commande {order.id} supprimée")
+            await service.update_order_status(order.id, "cancelled")
+            logger.info(f"[customer.deleted] commande {order.id} annulée")
         except NotFoundError:
-            logger.warning(f"[customer.deleted] commande {order.id} déjà supprimée ?")
+            logger.warning(f"[customer.deleted] commande {order.id} introuvable ?")
 
 
-# ----- ORDER UPDATED -----
+# ----- CUSTOMER UPDATE ORDER -----
 async def handle_customer_update_order(payload: dict, db: Session, publisher):
     """
     Mise à jour d’une commande par le client (ex: changement de quantités).
@@ -57,21 +58,17 @@ async def handle_customer_update_order(payload: dict, db: Session, publisher):
     service = OrderService(repo, publisher)
 
     try:
-        # Ici, on délègue la logique métier au service
         await service.update_order_items(order_id, items)
         logger.info(f"[customer.update_order] commande {order_id} mise à jour")
     except NotFoundError:
         logger.warning(f"[customer.update_order] commande {order_id} introuvable")
 
 
-# ----- ORDER DELETED -----
+# ----- CUSTOMER DELETE ORDER -----
 async def handle_customer_delete_order(payload: dict, db: Session, publisher):
     """
-    Suppression explicite d’une commande par le client.
-    payload attendu :
-    {
-        "id": 12
-    }
+    Suppression explicite d’une commande par le client :
+    - on passe en statut CANCELLED (au lieu de supprimer physiquement)
     """
     order_id = payload.get("id")
     if not order_id:
@@ -82,11 +79,13 @@ async def handle_customer_delete_order(payload: dict, db: Session, publisher):
     service = OrderService(repo, publisher)
 
     try:
-        await service.delete_order(order_id)
-        logger.info(f"[customer.delete_order] commande {order_id} supprimée")
+        await service.update_order_status(order_id, "cancelled")
+        logger.info(f"[customer.delete_order] commande {order_id} annulée")
     except NotFoundError:
         logger.warning(f"[customer.delete_order] commande {order_id} introuvable")
 
+
+# ----- ORDER REJECTED -----
 async def handle_order_rejected(payload: dict, db: Session, publisher):
     """
     Quand le product-api rejette une commande (stock insuffisant).
