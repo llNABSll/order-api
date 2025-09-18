@@ -46,14 +46,19 @@ class OrderService:
     def get_all_orders(self, skip: int = 0, limit: int = 100) -> List[Order]:
         return self.repository.list(skip=skip, limit=limit)
 
-    # ==========================================================
-    # === Création : publie un event pour demander le prix =====
-    # ==========================================================
-    async def create_order(self, order_in: OrderCreate) -> dict:
+    async def create_and_request_price(self, order_in: OrderCreate) -> Order:
+        """Persiste une commande minimale immédiatement (sans prix calculé) et publie ensuite l'event de pricing.
+        Retourne l'entité créée pour un 201 Created.
+        """
         if not order_in.items:
             raise HTTPException(status_code=400, detail="Order must contain at least one item")
 
+        # Créer ordre vide avec items quantités (prix inconnus -> 0)
+        db_order = self.repository.create(order_in)
+        # Injecter les items bruts (si repository ne les crée pas, ils seront ajoutés après pricing event)
+        # On publie l'event de pricing
         payload = {
+            "id": db_order.id,
             "customer_id": order_in.customer_id,
             "items": [
                 {"product_id": i.product_id, "quantity": i.quantity}
@@ -61,9 +66,8 @@ class OrderService:
             ],
         }
         await self.publisher.publish_message("order.request_price", payload)
-        logger.info("[order.create] demande de prix envoyée")
-        return {"status": OrderStatus.PENDING.value,
-                "message": "Demande de prix envoyée au product-api"}
+        logger.info("[order.create] persisted order %s & price request sent", db_order.id)
+        return db_order
 
     # ==========================================================
     # === Mise à jour du statut ================================

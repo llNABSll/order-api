@@ -29,16 +29,16 @@ def get_order_service(db: Session = Depends(get_db)) -> OrderService:
 
 # ---------- Endpoints CRUD ----------
 
-@router.post("/", status_code=202)
+@router.post("/", response_model=OrderResponse, status_code=201, dependencies=[Depends(require_write)])
 async def create_order(
     order_in: OrderCreate,
     svc: OrderService = Depends(get_order_service),
 ):
     """
-    Crée une commande : publie un event pour calculer le prix.
-    Retourne juste un accusé de réception (pas l’Order complet).
+    Crée et persiste immédiatement une commande (statut pending) avec ses items bruts (quantités sans prix),
+    puis publie un event pour calculer les prix. Retourne la ressource créée (201 Created).
     """
-    return await svc.create_order(order_in)
+    return await svc.create_and_request_price(order_in)
 
 @router.get(
     "/",
@@ -85,8 +85,10 @@ async def update_order_status(
         new_status = OrderStatus(status_update.status)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status value.")
-
-    return await svc.update_order_status(order_id, new_status)
+    try:
+        return await svc.update_order_status(order_id, new_status)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.delete(
     "/{order_id}",

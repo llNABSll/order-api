@@ -28,14 +28,14 @@ async def test_handle_customer_deleted_success(mock_repo, mock_service, db_sessi
     repo.list.return_value = orders
     service = mock_service.return_value
     # ensure async methods
-    service.delete_order = AsyncMock()
+    service.update_order_status = AsyncMock()
 
     await handle_customer_deleted({"id": 123}, db_session, publisher)
 
     repo.list.assert_called_once_with(filters={"customer_id": 123})
-    assert service.delete_order.call_count == 2
-    service.delete_order.assert_any_call(1)
-    service.delete_order.assert_any_call(2)
+    assert service.update_order_status.call_count == 2
+    service.update_order_status.assert_any_call(1, "cancelled")
+    service.update_order_status.assert_any_call(2, "cancelled")
 
 @patch('app.infra.events.handlers.OrderService')
 @patch('app.infra.events.handlers.OrderRepository')
@@ -46,7 +46,7 @@ async def test_handle_customer_deleted_order_not_found(mock_repo, mock_service, 
     repo = mock_repo.return_value
     repo.list.return_value = orders
     service = mock_service.return_value
-    service.delete_order = AsyncMock(side_effect=NotFoundError())
+    service.update_order_status = AsyncMock(side_effect=NotFoundError())
 
     await handle_customer_deleted({"id": 123}, db_session, publisher)
 
@@ -96,10 +96,10 @@ async def test_handle_customer_delete_order_success(mock_repo, mock_service, db_
     from app.infra.events.handlers import handle_customer_delete_order
 
     service = mock_service.return_value
-    service.delete_order = AsyncMock()
+    service.update_order_status = AsyncMock()
     await handle_customer_delete_order({"id": 12}, db_session, publisher)
 
-    service.delete_order.assert_called_once_with(12)
+    service.update_order_status.assert_called_once_with(12, "cancelled")
 
 @patch('app.infra.events.handlers.OrderService')
 @patch('app.infra.events.handlers.OrderRepository')
@@ -107,7 +107,7 @@ async def test_handle_customer_delete_order_not_found(mock_repo, mock_service, d
     from app.infra.events.handlers import handle_customer_delete_order
 
     service = mock_service.return_value
-    service.delete_order = AsyncMock(side_effect=NotFoundError())
+    service.update_order_status = AsyncMock(side_effect=NotFoundError())
 
     await handle_customer_delete_order({"id": 12}, db_session, publisher)
 

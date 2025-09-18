@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from app.models.order_models import OrderStatus
 
 from pydantic import BaseModel, Field
@@ -34,7 +34,8 @@ class OrderCreate(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: OrderStatus
+    # Accept raw string so that invalid values produce a 400 we control instead of a 422 from Pydantic enum validation
+    status: str
 
 
 class OrderResponse(BaseModel):
