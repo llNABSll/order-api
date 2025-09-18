@@ -11,6 +11,8 @@ from app.schemas.order_schemas import OrderCreate, OrderResponse, OrderUpdate
 from app.security.security import require_read, require_write
 from app.infra.events.rabbitmq import rabbitmq
 from app.services.order_services import NotFoundError, OrderService  # implémente MessagePublisher
+from app.models.order_models import OrderStatus
+
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -26,20 +28,17 @@ def get_order_service(db: Session = Depends(get_db)) -> OrderService:
 
 
 # ---------- Endpoints CRUD ----------
-@router.post(
-    "/",
-    response_model=OrderResponse,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_write)],
-)
+
+@router.post("/", status_code=202)
 async def create_order(
     order_in: OrderCreate,
     svc: OrderService = Depends(get_order_service),
 ):
-    """Créer une commande. Nécessite les droits WRITE."""
-    logger.info("Creating order for customer %s", order_in.customer_id)
+    """
+    Crée une commande : publie un event pour calculer le prix.
+    Retourne juste un accusé de réception (pas l’Order complet).
+    """
     return await svc.create_order(order_in)
-
 
 @router.get(
     "/",
@@ -80,21 +79,14 @@ async def update_order_status(
 ):
     """Mettre à jour le statut d’une commande. Nécessite WRITE."""
     if not status_update.status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Status field is required.",
-        )
-    if status_update.status not in ["pending", "paid", "shipped", "cancelled", "completed", "confirmed"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status value.",
-        )
+        raise HTTPException(status_code=400, detail="Status field is required.")
 
     try:
-        return await svc.update_order_status(order_id, status_update.status)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        new_status = OrderStatus(status_update.status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid status value.")
 
+    return await svc.update_order_status(order_id, new_status)
 
 @router.delete(
     "/{order_id}",

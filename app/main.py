@@ -15,7 +15,7 @@ from app.core.config import settings
 from app.core.db import engine, SessionLocal
 from app.core.log import setup_logging, access_log_middleware
 from app.infra.events.rabbitmq import rabbitmq, start_consumer
-from app.infra.events.handlers import (handle_customer_deleted,handle_customer_update_order,handle_customer_delete_order)
+from app.infra.events.handlers import (handle_customer_deleted,handle_customer_update_order,handle_customer_delete_order, handle_order_rejected, handle_order_price_calculated)
 from app.api import order_routes as order_router
 from app.core.db import init_db
 
@@ -60,23 +60,24 @@ async def lifespan(app: FastAPI):
                     await handle_customer_update_order(payload, db, rabbitmq)
                 elif rk == "customer.delete_order":
                     await handle_customer_delete_order(payload, db, rabbitmq)
+                elif rk == "order.rejected":
+                    await handle_order_rejected(payload, db, rabbitmq)
+                elif rk == "order.price_calculated":
+                    await handle_order_price_calculated(payload, db, rabbitmq)
                 else:
                     logger.warning(f"[order-api] event ignoré: {rk}")
             finally:
                 db.close()
 
         # Démarre un consumer RabbitMQ
-        # Only start consumer if connection and exchange are available
-        if rabbitmq.connection is not None and rabbitmq.exchange is not None:
-            app.state.consumer_task = asyncio.create_task(
-                start_consumer(
-                    rabbitmq.connection,
-                    rabbitmq.exchange,
-                    rabbitmq.exchange_type,
-                    queue_name="order-events",
-                    patterns=["customer.#"],
-                    handler=consumer_handler,
-                )
+        asyncio.create_task(
+            start_consumer(
+                rabbitmq.connection,
+                rabbitmq.exchange_name,
+                rabbitmq.exchange_type,
+                queue_name="order-events",
+                patterns=["customer.#", "order.#"],
+                handler=consumer_handler,
             )
         else:
             logger.warning("RabbitMQ connection/exchange not available, consumer not started")

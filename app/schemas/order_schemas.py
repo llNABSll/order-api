@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 class OrderItemBase(BaseModel):
     product_id: int = Field(..., description="ID of the product")
     quantity: int = Field(..., gt=0, description="Quantity of the product")
-
-
+      
+      
 class OrderItemCreate(OrderItemBase):
     pass
 
@@ -19,18 +19,22 @@ class OrderItemCreate(OrderItemBase):
 class OrderItemResponse(OrderItemBase):
     id: int
     order_id: int
+    unit_price: float
+    line_total: float
 
-    class ConfigDict:
-        model_config = {"from_attributes": True}
+      
+class ConfigDict:
+    model_config = {"from_attributes": True}
 
 
 class OrderCreate(BaseModel):
     customer_id: int = Field(..., description="ID of the customer")
+    status: OrderStatus = OrderStatus.PENDING
     items: List[OrderItemCreate]
 
 
 class OrderUpdate(BaseModel):
-    status: OrderStatus | None = None
+    status: OrderStatus
 
 
 class OrderResponse(BaseModel):
@@ -40,6 +44,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     version: int
+    total: Optional[float] = None
     items: List[OrderItemResponse] = []
 
     class ConfigDict:
