@@ -56,6 +56,5 @@ class OrderItem(Base):
     line_total: Mapped[float] = mapped_column(nullable=False)
     total: Mapped[float] = mapped_column(nullable=False, default=0)
 
-
     # Relation back to the order
     order: Mapped[Order] = relationship(back_populates="items")

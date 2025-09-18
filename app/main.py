@@ -15,8 +15,7 @@ from app.core.config import settings
 from app.core.db import engine, SessionLocal
 from app.core.log import setup_logging, access_log_middleware
 from app.infra.events.rabbitmq import rabbitmq, start_consumer
-from app.infra.events.handlers import (handle_customer_deleted,handle_customer_update_order,handle_customer_delete_order, 
-                                       handle_order_rejected, handle_order_price_calculated)
+from app.infra.events.handlers import (handle_customer_deleted,handle_customer_update_order,handle_customer_delete_order, handle_order_rejected, handle_order_price_calculated)
 from app.api import order_routes as order_router
 from app.core.db import init_db
 

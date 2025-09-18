@@ -21,7 +21,7 @@ Feature: Update orders
     Scenario: Fail to update status with invalid value
       Given an order exists with id "1" for customer "1" and status "pending"
       When I update the status of order "1" to "unknown"
-      Then the response status code is "400"
+      Then the response status code is "422"
   
     Scenario: Fail to update a non-existing order
       When I update the status of order "9999" to "paid"

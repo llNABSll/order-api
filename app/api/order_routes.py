@@ -13,6 +13,7 @@ from app.infra.events.rabbitmq import rabbitmq
 from app.services.order_services import NotFoundError, OrderService  # implémente MessagePublisher
 from app.models.order_models import OrderStatus
 
+
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ def get_order_service(db: Session = Depends(get_db)) -> OrderService:
 
 
 # ---------- Endpoints CRUD ----------
+
 @router.post("/", status_code=202)
 async def create_order(
     order_in: OrderCreate,

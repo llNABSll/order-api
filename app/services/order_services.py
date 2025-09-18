@@ -31,9 +31,11 @@ class OrderService:
         self.repository = repository
         self.publisher = publisher
 
+        
     # ==========================================================
     # === Lecture ==============================================
     # ==========================================================
+    
     def get_order(self, order_id: int) -> Order:
         order = self.repository.get(order_id)
         if not order:
@@ -43,6 +45,7 @@ class OrderService:
 
     def get_all_orders(self, skip: int = 0, limit: int = 100) -> List[Order]:
         return self.repository.list(skip=skip, limit=limit)
+
 
     # ==========================================================
     # === Création : publie un event pour demander le prix =====
@@ -220,3 +223,4 @@ class OrderService:
         )
         logger.info("order deleted", extra={"id": order_id})
         return deleted
+
