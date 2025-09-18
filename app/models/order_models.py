@@ -27,6 +27,7 @@ class Order(Base):
         default=OrderStatus.PENDING,
         nullable=False,
     )
+    total: Mapped[float] = mapped_column(nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     created_at: Mapped[datetime] = mapped_column(

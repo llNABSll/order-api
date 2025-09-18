@@ -48,31 +48,20 @@ class OrderService:
     # === Création : publie un event pour demander le prix =====
     # ==========================================================
     async def create_order(self, order_in: OrderCreate) -> dict:
-        """
-        Ne persiste plus directement.
-        Publie `order.request_price` vers le product-api.
-        La création finale sera faite par le handler `handle_order_price_calculated`.
-        """
         if not order_in.items:
             raise HTTPException(status_code=400, detail="Order must contain at least one item")
 
-        # ID temporaire (timestamp). Peut être remplacé par UUID ou séquence si besoin.
-        tmp_id = int(datetime.now().timestamp())
-
         payload = {
-            "order_id": tmp_id,
             "customer_id": order_in.customer_id,
-            "items": [{"product_id": i.product_id, "quantity": i.quantity} for i in order_in.items],
+            "items": [
+                {"product_id": i.product_id, "quantity": i.quantity}
+                for i in order_in.items
+            ],
         }
-
         await self.publisher.publish_message("order.request_price", payload)
-        logger.info("[order.create] demande de prix envoyée", extra={"id": tmp_id})
-
-        return {
-            "order_id": tmp_id,
-            "status": OrderStatus.PENDING.value,
-            "message": "Demande de prix envoyée au product-api"
-        }
+        logger.info("[order.create] demande de prix envoyée")
+        return {"status": OrderStatus.PENDING.value,
+                "message": "Demande de prix envoyée au product-api"}
 
     # ==========================================================
     # === Mise à jour du statut ================================
