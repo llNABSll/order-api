@@ -16,5 +16,5 @@ jobs:
         uses: llNABSll/pull-request-action@main
         with:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          UNIT_TESTS_COMMAND: coverage run --source=dev/src -m behave dev/tests/features --junit --junit-directory reports; coverage xml -o coverage.xml
+          UNIT_TESTS_COMMAND: coverage run -m pytest --junitxml=reports/junit.xml; coverage xml -o coverage.xml
           REPORT_PATH: '**/reports/TESTS-*.xml'

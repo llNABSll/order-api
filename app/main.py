@@ -79,7 +79,8 @@ async def lifespan(app: FastAPI):
                 patterns=["customer.#", "order.#"],
                 handler=consumer_handler,
             )
-        )
+        else:
+            logger.warning("RabbitMQ connection/exchange not available, consumer not started")
 
         logger.info("[order-api] Consumer lancé (q-order, patterns=product.#)")
     except Exception as e:

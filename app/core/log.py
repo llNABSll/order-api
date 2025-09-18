@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import logging
-import sys, json
+import sys
+import json
+import time
+import uuid
+from typing import Any
 from fastapi import Request, Response
 from uvicorn.logging import ColourizedFormatter
 from app.core.config import settings
@@ -70,13 +74,12 @@ def setup_logging():
 
 async def access_log_middleware(request: Request, call_next) -> Response:
     """Middleware pour logguer les requêtes et réponses avec un request_id."""
-    import time, uuid
 
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
 
     logger = logging.getLogger("app.access")
-    extra = {
+    extra: dict[str, Any] = {
         "request_id": request_id,
         "method": request.method,
         "path": request.url.path,
@@ -86,9 +89,10 @@ async def access_log_middleware(request: Request, call_next) -> Response:
 
     start = time.time()
     response = await call_next(request)
-    duration_ms = round((time.time() - start) * 1000, 2)
+    duration_ms: float = round((time.time() - start) * 1000, 2)
 
-    extra["status"] = response.status_code
+    # Explicitly use correct types for extra fields
+    extra["status"] = int(response.status_code)
     extra["latency_ms"] = duration_ms
 
     logger.info("request", extra=extra)

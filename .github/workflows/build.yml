@@ -18,6 +18,6 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
-          UNIT_TESTS_COMMAND: coverage run --source=dev/src -m behave dev/tests/features --junit --junit-directory reports; coverage xml -o coverage.xml
+          UNIT_TESTS_COMMAND: coverage run -m pytest --junitxml=reports/junit.xml; coverage xml -o coverage.xml
           API_NAME: order-api
           REPORT_PATH: '**/reports/TESTS-*.xml'

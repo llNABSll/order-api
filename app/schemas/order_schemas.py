@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import List
 from app.models.order_models import OrderStatus
 
 from pydantic import BaseModel, Field

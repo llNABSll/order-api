@@ -46,7 +46,6 @@ class OrderService:
     def get_all_orders(self, skip: int = 0, limit: int = 100) -> List[Order]:
         return self.repository.list(skip=skip, limit=limit)
 
-
     # ==========================================================
     # === Création : publie un event pour demander le prix =====
     # ==========================================================
@@ -116,6 +115,7 @@ class OrderService:
     # ==========================================================
     # === Mise à jour des items ================================
     # ==========================================================
+    
     async def update_order_items(self, order_id: int, items: list[dict]) -> Order:
         order = self.get_order(order_id)
 
