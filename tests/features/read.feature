@@ -3,6 +3,17 @@ Feature: Get an order
   I want to retrieve a specific order
   So that I can check its content and status
 
+  Scenario: List orders when empty
+    When I list orders
+    Then the response should have status code 200
+    And the list should be empty
+
+  Scenario: List orders after creation
+    Given an order exists with id "26" for customer "1"
+    When I list orders
+    Then the response should have status code 200
+    And the list should contain at least 1 order
+
   Scenario: Retrieve an existing order
     Given an order exists with id "26" for customer "1"
     When I get the order "1"

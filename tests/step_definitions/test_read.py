@@ -46,3 +46,21 @@ def step_then_status(scenario_data, status):
 @then(parsers.parse('the response should have status code {status_code:d}'))
 def step_then_status_code(scenario_data, status_code):
     assert scenario_data["response"].status_code == status_code
+
+
+# ---------- New list orders steps ----------
+@when('I list orders')
+def step_when_list_orders(client, scenario_data):
+    scenario_data["response"] = client.get("/orders/?skip=0&limit=100")
+
+@then('the list should be empty')
+def step_then_list_empty(scenario_data):
+    data = scenario_data["response"].json()
+    assert isinstance(data, list)
+    assert len(data) == 0
+
+@then('the list should contain at least 1 order')
+def step_then_list_not_empty(scenario_data):
+    data = scenario_data["response"].json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
