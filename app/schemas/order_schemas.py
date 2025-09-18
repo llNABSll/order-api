@@ -11,7 +11,6 @@ class OrderItemBase(BaseModel):
     product_id: int = Field(..., description="ID of the product")
     quantity: int = Field(..., gt=0, description="Quantity of the product")
 
-
 class OrderItemCreate(OrderItemBase):
     pass
 
@@ -19,6 +18,8 @@ class OrderItemCreate(OrderItemBase):
 class OrderItemResponse(OrderItemBase):
     id: int
     order_id: int
+    unit_price: float
+    line_total: float
 
     class ConfigDict:
         model_config = {"from_attributes": True}
@@ -41,6 +42,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     version: int
+    total: Optional[float] = None
     items: List[OrderItemResponse] = []
 
     class ConfigDict:

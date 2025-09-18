@@ -111,3 +111,53 @@ async def handle_order_rejected(payload: dict, db: Session, publisher):
         logger.warning(f"[order.rejected] Commande {order_id} rejetée : {reason}")
     else:
         logger.warning(f"[order.rejected] commande {order_id} introuvable")
+
+
+# app/infra/events/handlers.py  (order-api)
+
+async def handle_order_price_calculated(payload: dict, db: Session, publisher):
+    """
+    Reçoit `order.price_calculated` du product-api
+    et persiste la commande avec les prix.
+    """
+    from app.models.order_models import Order, OrderItem, OrderStatus
+
+    order_id = payload.get("order_id")
+    customer_id = payload.get("customer_id")
+    items = payload.get("items", [])
+    total = payload.get("total", 0.0)
+
+    if not order_id or not customer_id or not items:
+        logging.warning("[order.price_calculated] payload invalide: %s", payload)
+        return
+
+    order = Order(
+        id=order_id,
+        customer_id=customer_id,
+        status=OrderStatus.PENDING,
+    )
+
+    running_total = 0.0
+    for it in items:
+        price = float(it.get("unit_price", 0))
+        qty = int(it.get("quantity", 0))
+        line_total = price * qty
+        running_total += line_total
+
+        order.items.append(
+            OrderItem(
+                product_id=it["product_id"],
+                quantity=qty,
+                unit_price=price,
+                line_total=line_total,
+                total=line_total,
+                order=order,
+            )
+        )
+
+    order.total = total or running_total
+
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    logging.info("[order.price_calculated] commande %s persistée (total=%s)", order_id, order.total)

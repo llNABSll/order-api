@@ -27,20 +27,16 @@ def get_order_service(db: Session = Depends(get_db)) -> OrderService:
 
 
 # ---------- Endpoints CRUD ----------
-@router.post(
-    "/",
-    response_model=OrderResponse,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_write)],
-)
+@router.post("/", status_code=202)
 async def create_order(
     order_in: OrderCreate,
     svc: OrderService = Depends(get_order_service),
 ):
-    """Créer une commande. Nécessite les droits WRITE."""
-    logger.info("Creating order for customer %s", order_in.customer_id)
+    """
+    Crée une commande : publie un event pour calculer le prix.
+    Retourne juste un accusé de réception (pas l’Order complet).
+    """
     return await svc.create_order(order_in)
-
 
 @router.get(
     "/",
