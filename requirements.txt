@@ -12,7 +12,7 @@ pydantic-settings==2.4.0
 python-dotenv==1.0.1
 
 # --- Messaging (RabbitMQ, async) ---
-aio-pika==9.4.1
+aio-pika==9.5.6
 
 # --- Monitoring / Metrics ---
 prometheus-client==0.20.0
