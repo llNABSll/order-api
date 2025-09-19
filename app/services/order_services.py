@@ -39,7 +39,7 @@ class OrderService:
     def get_order(self, order_id: int) -> Order:
         order = self.repository.get(order_id)
         if not order:
-            logger.debug("order introuvable", extra={"id": order_id})
+            logger.debug("order introuvable", extra={"order_id": order_id})
             raise NotFoundError(f"Order {order_id} not found")
         return order
 
@@ -47,74 +47,71 @@ class OrderService:
         return self.repository.list(skip=skip, limit=limit)
 
     async def create_and_request_price(self, order_in: OrderCreate) -> Order:
-        """Persiste une commande minimale immédiatement (sans prix calculé) et publie ensuite l'event de pricing.
-        Retourne l'entité créée pour un 201 Created.
         """
+        Crée une commande en base (statut PENDING) avec items (product_id + quantity).
+        Ensuite publie deux événements :
+        - customer.validate_request → pour vérifier que le client existe
+        - order.request_price → pour calculer les prix et vérifier le stock
+        """
+
         if not order_in.items:
             raise HTTPException(status_code=400, detail="Order must contain at least one item")
 
-        # Créer ordre vide avec items quantités (prix inconnus -> 0)
+        # 1. Persiste la commande minimale (status = PENDING)
         db_order = self.repository.create(order_in)
-        # Injecter les items bruts (si repository ne les crée pas, ils seront ajoutés après pricing event)
-        # On publie l'event de pricing
-        payload = {
-            "id": db_order.id,
-            "customer_id": order_in.customer_id,
-            "items": [
-                {"product_id": i.product_id, "quantity": i.quantity}
-                for i in order_in.items
-            ],
-        }
-        await self.publisher.publish_message("order.request_price", payload)
-        logger.info("[order.create] persisted order %s & price request sent", db_order.id)
+
+        # 2. Publie un event pour valider le customer
+        await self.publisher.publish_message(
+            "customer.validate_request",
+            {
+                "order_id": db_order.id,
+                "customer_id": order_in.customer_id,
+            },
+        )
+        logger.info("[order.create] order %s persisted, awaiting customer validation", db_order.id)
+
+        # 3. Publie un event pour demander le calcul du prix
+        await self.publisher.publish_message(
+            "order.request_price",
+            {
+                "order_id": db_order.id,
+                "customer_id": order_in.customer_id,
+                "items": [
+                    {"product_id": i.product_id, "quantity": i.quantity}
+                    for i in order_in.items
+                ],
+            },
+        )
+        logger.info("[order.create] order %s price request sent", db_order.id)
+
         return db_order
 
     # ==========================================================
     # === Mise à jour du statut ================================
     # ==========================================================
-    async def update_order_status(self, order_id: int, new_status: str) -> Order:
-        order = self.get_order(order_id)
+    async def update_order_status(self, order_id: int, new_status: OrderStatus, publish: bool = True):
+        order = self.repository.get(order_id)
+        if not order:
+            raise NotFoundError()
+
+        if order.status == new_status:
+            logger.info("[order.status] %s déjà en %s, no-op", order.id, new_status)
+            return order
+
         old_status = order.status
-
-        try:
-            status_enum = new_status if isinstance(new_status, OrderStatus) else OrderStatus(new_status)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid status '{new_status}'")
-
-        updated = self.repository.update(order, OrderUpdate(status=status_enum))
+        order.status = new_status
         self.repository.db.commit()
-        self.repository.db.refresh(updated)
+        self.repository.db.refresh(order)
 
-        items_payload = [
-            {
-                "product_id": i.product_id,
-                "quantity": i.quantity,
-                "unit_price": i.unit_price,
-                "line_total": i.line_total,
-            }
-            for i in updated.items
-        ]
+        if publish:
+            await self.publisher.publish_message(
+                f"order.{new_status.value.lower()}",
+                order.to_dict()
+            )
 
-        event = "order.updated"
-        if updated.status == OrderStatus.CANCELLED:
-            event = "order.cancelled"
-        elif updated.status == OrderStatus.REJECTED:
-            event = "order.rejected"
+        logger.info("order status updated", extra={"id": order.id, "from": old_status, "to": new_status})
+        return order
 
-        await self.publisher.publish_message(
-            event,
-            {
-                "id": updated.id,
-                "status": updated.status.value,
-                "items": items_payload,
-                "updated_at": updated.updated_at.isoformat(),
-            },
-        )
-        logger.info(
-            "order status updated",
-            extra={"id": updated.id, "from": old_status.value, "to": updated.status.value},
-        )
-        return updated
 
     # ==========================================================
     # === Mise à jour des items ================================
@@ -181,7 +178,7 @@ class OrderService:
         await self.publisher.publish_message(
             "order.updated",
             {
-                "id": order.id,
+                "order_id": order.id,
                 "status": getattr(order.status, "value", order.status),
                 "items": items_payload,
                 "updated_at": order.updated_at.isoformat(),
@@ -191,7 +188,7 @@ class OrderService:
         if deltas:
             await self.publisher.publish_message(
                 "order.items_delta",
-                {"id": order.id, "deltas": deltas, "updated_at": order.updated_at.isoformat()},
+                {"order_id": order.id, "deltas": deltas, "updated_at": order.updated_at.isoformat()},
             )
 
         logger.info("[order.items] updated", extra={"id": order.id, "deltas": deltas})
@@ -218,13 +215,13 @@ class OrderService:
         await self.publisher.publish_message(
             "order.deleted",
             {
-                "id": order_id,
+                "order_id": order_id,
                 "customer_id": order.customer_id,
                 "status": getattr(order.status, "value", order.status),
                 "items": items_payload,
                 "deleted_at": datetime.now(timezone.utc).isoformat(),
             },
         )
-        logger.info("order deleted", extra={"id": order_id})
+        logger.info("order deleted", extra={"order_id": order_id})
         return deleted
 
