@@ -2,7 +2,7 @@ from app.security.security import AuthContext, require_read, require_write
 from pytest_bdd            import given, when, then, parsers, scenarios
 from fastapi.testclient    import TestClient
 from app.main              import app
-from common_steps          import *
+from common_steps          import * # noqa: F401
 import pytest
 
 scenarios("../features/create.feature")

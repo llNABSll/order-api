@@ -4,7 +4,7 @@ from typing import Protocol, Awaitable, Callable, Iterable
 class MessagePublisher(Protocol):
     async def publish_message(self, routing_key: str, message: dict) -> None:
         """
-        Contrat minimal pour tout publisher d'événements (RabbitMQ, Kafka, mock, etc.)
+        Contrat minimal pour tout publisher d'événements.
         """
         ...
 
@@ -21,6 +21,5 @@ class MessageConsumer(Protocol):
     ) -> None:
         """
         Contrat minimal pour tout consumer d'événements.
-        Exemple: RabbitMQ, Kafka ou implémentation mock pour les tests.
         """
         ...
