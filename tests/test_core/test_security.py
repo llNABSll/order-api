@@ -118,7 +118,7 @@ def test_verifier_init_missing_config():
     with pytest.raises(RuntimeError):
         sec._Verifier(jwks_url="", issuer="issuer")
     with pytest.raises(RuntimeError):
-        sec._Verifier(jwks_url="http://jwks", issuer="")
+        sec._Verifier(jwks_url="https://jwks", issuer="")
 
 
 # ----- _get_verifier -----
@@ -127,7 +127,7 @@ def test_get_verifier_creates_and_reuses(monkeypatch):
     fake_verifier = MagicMock()
     monkeypatch.setattr(sec, "_Verifier", lambda jwks, iss: fake_verifier)
     monkeypatch.setattr(sec, "settings", MagicMock(
-        KEYCLOAK_JWKS_URL="http://jwks", KEYCLOAK_ISSUER="issuer"
+        KEYCLOAK_JWKS_URL="https://jwks", KEYCLOAK_ISSUER="issuer"
     ))
 
     v1 = sec._get_verifier()
