@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.models.order_models import Order, OrderItem, OrderStatus
 from app.repositories.order_repositories import OrderRepository
-from app.schemas.order_schemas import OrderCreate, OrderUpdate
+from app.schemas.order_schemas import OrderCreate
 from app.infra.events.contracts import MessagePublisher
 
 logger = logging.getLogger(__name__)
@@ -60,15 +60,12 @@ class OrderService:
         # 1. Persiste la commande minimale (status = PENDING)
         db_order = self.repository.create(order_in)
 
-        # 2. Publie un event pour valider le customer
-        await self.publisher.publish_message(
-            "customer.validate_request",
-            {
-                "order_id": db_order.id,
-                "customer_id": order_in.customer_id,
-            },
-        )
-        logger.info("[order.create] order %s persisted, awaiting customer validation", db_order.id)
+        await self.publisher.publish_message("order.created", {
+            "order_id": db_order.id,
+            "customer_id": order_in.customer_id,
+            "created_at": db_order.created_at.isoformat() if db_order.created_at else None,
+        })
+
 
         # 3. Publie un event pour demander le calcul du prix
         await self.publisher.publish_message(
@@ -106,7 +103,12 @@ class OrderService:
         if publish:
             await self.publisher.publish_message(
                 f"order.{new_status.value.lower()}",
-                order.to_dict()
+                {
+                    "order_id": order.id,
+                    "customer_id": order.customer_id,
+                    "status": getattr(order.status, "value", str(order.status)),
+                    "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+                },
             )
 
         logger.info("order status updated", extra={"id": order.id, "from": old_status, "to": new_status})

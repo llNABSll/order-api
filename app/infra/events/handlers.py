@@ -11,11 +11,6 @@ logger = logging.getLogger(__name__)
 
 # ----- CUSTOMER VALIDATED -----
 async def handle_customer_validated(payload: dict, db: Session, publisher):
-    """
-    Quand le customer-api confirme que le client existe.
-    -> Passe la commande en statut PENDING et publie un nouvel event enrichi
-       (order.ready_for_stock) avec items+total pour product-api.
-    """
     order_id = payload.get("order_id")
     customer_id = payload.get("customer_id")
 
@@ -53,13 +48,12 @@ async def handle_customer_validated(payload: dict, db: Session, publisher):
 
     except NotFoundError:
         logger.warning(f"[order.customer_validated] commande {order_id} introuvable")
+    except Exception as e:
+        logger.error(f"[order.customer_validated] erreur inattendue: {e}")
+
 
 # ----- ORDER CONFIRMED (stock OK) -----
 async def handle_order_confirmed(payload: dict, db: Session, publisher):
-    """
-    Quand le product-api confirme que le stock est réservé.
-    -> Met à jour la commande en statut CONFIRMED, sans republier.
-    """
     order_id = payload.get("order_id")
     if not order_id:
         logger.warning("[order.confirmed] payload sans id → ignoré")
@@ -72,14 +66,12 @@ async def handle_order_confirmed(payload: dict, db: Session, publisher):
         logger.info(f"[order.confirmed] commande {order_id} confirmée (stock réservé)")
     except NotFoundError:
         logger.warning(f"[order.confirmed] commande {order_id} introuvable")
+    except Exception as e:
+        logger.error(f"[order.confirmed] erreur inattendue: {e}")
 
 
 # ----- ORDER REJECTED -----
 async def handle_order_rejected(payload: dict, db: Session, publisher):
-    """
-    Quand le customer-api ou product-api rejette une commande.
-    -> Met à jour le statut en REJECTED, sans republier.
-    """
     order_id = payload.get("order_id")
     reason = payload.get("reason") or payload.get("status") or "Unknown"
 
@@ -94,6 +86,8 @@ async def handle_order_rejected(payload: dict, db: Session, publisher):
         logger.warning(f"[order.rejected] commande {order_id} rejetée : {reason}")
     except NotFoundError:
         logger.warning(f"[order.rejected] commande {order_id} introuvable")
+    except Exception as e:
+        logger.error(f"[order.rejected] erreur inattendue: {e}")
 
 
 # ----- CUSTOMER DELETED -----
@@ -103,16 +97,21 @@ async def handle_customer_deleted(payload: dict, db: Session, publisher):
         logger.warning("[customer.deleted] payload sans id → ignoré")
         return
 
-    service = OrderService(OrderRepository(db), publisher)
-    orders = service.repository.list(filters={"customer_id": customer_id})
+    repo = OrderRepository(db)
+    service = OrderService(repo, publisher)
 
-    logger.info(f"[customer.deleted] {len(orders)} commandes trouvées pour customer {customer_id}")
-    for order in orders:
-        try:
-            await service.update_order_status(order.id, OrderStatus.CANCELLED, publish=False)
-            logger.info(f"[customer.deleted] commande {order.id} annulée")
-        except NotFoundError:
-            logger.warning(f"[customer.deleted] commande {order.id} déjà supprimée ou introuvable")
+    try:
+        orders = repo.list(filters={"customer_id": customer_id})
+        logger.info(f"[customer.deleted] {len(orders)} commandes trouvées pour customer {customer_id}")
+
+        for order in orders:
+            try:
+                await service.update_order_status(order.id, OrderStatus.CANCELLED, publish=False)
+                logger.info(f"[customer.deleted] commande {order.id} annulée")
+            except NotFoundError:
+                logger.warning(f"[customer.deleted] commande {order.id} déjà supprimée ou introuvable")
+    except Exception as e:
+        logger.error(f"[customer.deleted] erreur inattendue: {e}")
 
 
 # ----- CUSTOMER UPDATE ORDER -----
@@ -131,30 +130,30 @@ async def handle_customer_update_order(payload: dict, db: Session, publisher):
         logger.info(f"[customer.update_order] commande {order_id} mise à jour")
     except NotFoundError:
         logger.warning(f"[customer.update_order] commande {order_id} introuvable")
+    except Exception as e:
+        logger.error(f"[customer.update_order] erreur inattendue: {e}")
 
 
 # ----- CUSTOMER DELETE ORDER -----
 async def handle_customer_delete_order(payload: dict, db: Session, publisher):
     order_id = payload.get("order_id")
     if not order_id:
-        logger.warning("[customer.delete_order] payload sans id")
+        logger.warning("[customer.delete_order] payload sans order_id → ignoré")
         return
 
-    service = OrderService(OrderRepository(db), publisher)
-
+    repo = OrderRepository(db)
+    service = OrderService(repo, publisher)
     try:
         await service.update_order_status(order_id, OrderStatus.CANCELLED, publish=False)
         logger.info(f"[customer.delete_order] commande {order_id} annulée")
     except NotFoundError:
         logger.warning(f"[customer.delete_order] commande {order_id} introuvable")
+    except Exception as e:
+        logger.error(f"[customer.delete_order] erreur inattendue: {e}")
 
 
 # ----- ORDER PRICE CALCULATED -----
 async def handle_order_price_calculated(payload: dict, db: Session, publisher):
-    """
-    Mise à jour d'une commande après calcul du prix (depuis product-api).
-    -> Met à jour les items et publie ensuite order.created (normal).
-    """
     from app.models.order_models import OrderItem
 
     order_id = payload.get("order_id")
@@ -166,35 +165,36 @@ async def handle_order_price_calculated(payload: dict, db: Session, publisher):
         logger.warning("[order.price_calculated] payload invalide: %s", payload)
         return
 
-    repo = OrderRepository(db)
-    order = repo.get(order_id)
-    if not order:
-        logger.warning(f"[order.price_calculated] commande {order_id} introuvable en base")
-        return
+    try:
+        repo = OrderRepository(db)
+        order = repo.get(order_id)
+        if not order:
+            logger.warning(f"[order.price_calculated] commande {order_id} introuvable en base")
+            return
 
-    # Met à jour la commande avec les prix
-    order.total = total
-    order.items.clear()
-    for it in items:
-        order.items.append(
-            OrderItem(
-                product_id=it["product_id"],
-                quantity=it["quantity"],
-                unit_price=it["unit_price"],
-                line_total=it["unit_price"] * it["quantity"],
-                total=it["unit_price"] * it["quantity"],
-                order=order,
+        order.total = total
+        order.items.clear()
+        for it in items:
+            order.items.append(
+                OrderItem(
+                    product_id=it["product_id"],
+                    quantity=it["quantity"],
+                    unit_price=it["unit_price"],
+                    line_total=it["unit_price"] * it["quantity"],
+                    total=it["unit_price"] * it["quantity"],
+                    order=order,
+                )
             )
-        )
 
-    db.commit()
-    db.refresh(order)
-    logger.info(f"[order.price_calculated] commande {order.id} mise à jour (total={order.total})")
+        db.commit()
+        db.refresh(order)
+        logger.info(f"[order.price_calculated] commande {order.id} mise à jour (total={order.total})")
 
-    # Publie l’événement pour lancer la validation côté customer-api
-    await publisher.publish_message("order.created", {
-        "order_id": order.id,
-        "customer_id": customer_id,
-        "items": items,
-        "total": total,
-    })
+        await publisher.publish_message("order.created", {
+            "order_id": order.id,
+            "customer_id": customer_id,
+            "items": items,
+            "total": total,
+        })
+    except Exception as e:
+        logger.error(f"[order.price_calculated] erreur inattendue: {e}")
