@@ -101,19 +101,34 @@ class OrderService:
         self.repository.db.refresh(order)
 
         if publish:
+            payload = {
+                "order_id": order.id,
+                "customer_id": order.customer_id,
+                "status": getattr(order.status, "value", str(order.status)),
+                "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+            }
+
+            if new_status == OrderStatus.CANCELLED:
+                payload["items"] = [
+                    {
+                        "product_id": i.product_id,
+                        "quantity": i.quantity,
+                        "unit_price": i.unit_price,
+                        "line_total": i.line_total,
+                    }
+                    for i in order.items
+                ]
+
             await self.publisher.publish_message(
                 f"order.{new_status.value.lower()}",
-                {
-                    "order_id": order.id,
-                    "customer_id": order.customer_id,
-                    "status": getattr(order.status, "value", str(order.status)),
-                    "updated_at": order.updated_at.isoformat() if order.updated_at else None,
-                },
+                payload,
             )
 
-        logger.info("order status updated", extra={"id": order.id, "from": old_status, "to": new_status})
+        logger.info(
+            "order status updated",
+            extra={"id": order.id, "from": old_status, "to": new_status},
+        )
         return order
-
 
     # ==========================================================
     # === Mise à jour des items ================================

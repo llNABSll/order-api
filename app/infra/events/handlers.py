@@ -106,7 +106,7 @@ async def handle_customer_deleted(payload: dict, db: Session, publisher):
 
         for order in orders:
             try:
-                await service.update_order_status(order.id, OrderStatus.CANCELLED, publish=False)
+                await service.update_order_status(order.id, OrderStatus.CANCELLED, publish=True)
                 logger.info(f"[customer.deleted] commande {order.id} annulée")
             except NotFoundError:
                 logger.warning(f"[customer.deleted] commande {order.id} déjà supprimée ou introuvable")
