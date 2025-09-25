@@ -15,7 +15,7 @@ python-dotenv==1.0.1
 aio-pika==9.4.1
 
 # --- Monitoring / Metrics ---
-prometheus-client==0.20.0
+prometheus-client==0.23.1
 
 # --- Tests ---
 pytest==8.3.2
